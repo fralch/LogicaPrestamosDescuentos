@@ -380,6 +380,278 @@ class LoanEngine {
 }
 
 /**
+ * Motor de Retenciones por Planilla y Reglas de Corte de Nómina
+ * Gestiona el fraccionamiento de la cuota mensual bancaria según la periodicidad del salario
+ * (Quincenal 50/50, Semanal 25%x4, Mensual 100%) y calcula el primer descuento por corte de RRHH.
+ */
+class PayrollEngine {
+  static MONTH_NAMES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  /**
+   * Formatea un objeto Date a string DD/MM/YYYY.
+   * @param {Date} date
+   * @returns {string}
+   */
+  static formatDate(date) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  /**
+   * Determina la fecha exacta de pago y periodo de nómina del PRIMER DESCUENTO
+   * evaluando la fecha de desembolso contra las fechas de corte oficiales de RRHH.
+   * 
+   * @param {Date|string} disbursementDate - Fecha en que se desembolsa el préstamo
+   * @param {PayrollFrequency} frequency - 'QUINCENAL' | 'SEMANAL' | 'MENSUAL'
+   * @returns {{
+   *   periodo: string,
+   *   fechaPago: string,
+   *   fechaDate: Date,
+   *   corteExplicacion: string,
+   *   quincenaSubtipo: number,
+   *   diasHastaPrimerCobro: number
+   * }}
+   */
+  static calculateFirstDeductionInfo(disbursementDate, frequency = 'QUINCENAL') {
+    const d = (disbursementDate instanceof Date) ? new Date(disbursementDate.getTime()) : new Date(disbursementDate);
+    // Normalizar hora a medianoche
+    d.setHours(0, 0, 0, 0);
+
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const day = d.getDate();
+
+    let targetDate;
+    let periodo = '';
+    let corteExplicacion = '';
+    let quincenaSubtipo = 1; // 1: 1ª Quincena, 2: 2ª Quincena
+
+    if (frequency === 'QUINCENAL') {
+      // Regla de Nómina Quincenal:
+      // Corte 1: Día 10 -> Pago: Día 15
+      // Corte 2: Día 22 -> Pago: Fin de mes (28, 29, 30 o 31)
+      if (day <= 10) {
+        // Entra en la 1ra quincena del mes actual
+        targetDate = new Date(year, month, 15);
+        periodo = `1ª Quincena ${this.MONTH_NAMES[month]} ${year}`;
+        corteExplicacion = `Desembolso (día ${day}) anterior al corte de RRHH del día 10. Aplica en la boleta del 15 de ${this.MONTH_NAMES[month]}.`;
+        quincenaSubtipo = 1;
+      } else if (day <= 22) {
+        // Entra en la 2da quincena (fin de mes) del mes actual
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        targetDate = new Date(year, month, lastDay);
+        periodo = `2ª Quincena ${this.MONTH_NAMES[month]} ${year}`;
+        corteExplicacion = `Desembolso (día ${day}) posterior al corte del día 10 pero anterior al del día 22. Aplica en la boleta de fin de mes (${lastDay} de ${this.MONTH_NAMES[month]}).`;
+        quincenaSubtipo = 2;
+      } else {
+        // Pasa a la 1ra quincena del mes siguiente
+        const nextMonthDate = new Date(year, month + 1, 15);
+        targetDate = nextMonthDate;
+        periodo = `1ª Quincena ${this.MONTH_NAMES[nextMonthDate.getMonth()]} ${nextMonthDate.getFullYear()}`;
+        corteExplicacion = `Desembolso (día ${day}) posterior al corte del día 22. Planilla cerrada; aplica en la 1ª quincena del mes siguiente (${this.MONTH_NAMES[nextMonthDate.getMonth()]}).`;
+        quincenaSubtipo = 1;
+      }
+    } else if (frequency === 'SEMANAL') {
+      // Regla de Nómina Semanal:
+      // Pago: Sábados. Corte de planilla: Miércoles a medianoche (dayOfWeek 3)
+      const dayOfWeek = d.getDay(); // 0: Dom, 1: Lun, 2: Mar, 3: Mie, 4: Jue, 5: Vie, 6: Sab
+      let daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+      if (daysUntilSaturday === 0 && dayOfWeek !== 6) daysUntilSaturday = 7;
+
+      if (dayOfWeek <= 3) {
+        // Antes o igual al miércoles: cobra el sábado de esta misma semana
+        targetDate = new Date(d.getTime() + daysUntilSaturday * 24 * 60 * 60 * 1000);
+        corteExplicacion = `Desembolso realizado antes del corte del miércoles. Aplica en el sueldo del sábado inmediato (${this.formatDate(targetDate)}).`;
+      } else {
+        // Jueves, viernes o sábado: corte cerrado, cobra el sábado de la siguiente semana
+        targetDate = new Date(d.getTime() + (daysUntilSaturday + 7) * 24 * 60 * 60 * 1000);
+        corteExplicacion = `Desembolso posterior al corte del miércoles. Aplica en el sueldo del sábado de la siguiente semana (${this.formatDate(targetDate)}).`;
+      }
+
+      // Estimar número de semana en el mes
+      const weekOfMonth = Math.ceil(targetDate.getDate() / 7);
+      periodo = `Semana ${weekOfMonth} - ${this.MONTH_NAMES[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+    } else {
+      // MENSUAL:
+      // Corte: Día 20 -> Pago: Fin de mes
+      if (day <= 20) {
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        targetDate = new Date(year, month, lastDay);
+        periodo = `Fin de Mes ${this.MONTH_NAMES[month]} ${year}`;
+        corteExplicacion = `Desembolso (día ${day}) antes del corte del día 20. Aplica en la boleta de este mes (${lastDay} de ${this.MONTH_NAMES[month]}).`;
+      } else {
+        const nextMonthDate = new Date(year, month + 2, 0);
+        targetDate = nextMonthDate;
+        periodo = `Fin de Mes ${this.MONTH_NAMES[nextMonthDate.getMonth()]} ${nextMonthDate.getFullYear()}`;
+        corteExplicacion = `Desembolso (día ${day}) posterior al corte del día 20. Aplica en la boleta de fin de mes siguiente (${this.MONTH_NAMES[nextMonthDate.getMonth()]}).`;
+      }
+    }
+
+    // Calcular días de diferencia
+    const diffTime = targetDate.getTime() - d.getTime();
+    const diasHastaPrimerCobro = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+
+    return {
+      periodo,
+      fechaPago: this.formatDate(targetDate),
+      fechaDate: targetDate,
+      corteExplicacion,
+      quincenaSubtipo,
+      diasHastaPrimerCobro
+    };
+  }
+
+  /**
+   * Genera el desglose completo de retenciones por boleta de nómina.
+   * Conecta las cuotas mensuales uniformes (Sistema Francés) con los pagos salariales del trabajador.
+   * 
+   * @param {Loan} loan - Préstamo generado con cronograma mensual
+   * @param {PayrollFrequency} [frequency='QUINCENAL'] - Modalidad de cobro del trabajador
+   * @param {Date|string} [disbursementDate=new Date()] - Fecha de desembolso
+   * @returns {{
+   *   frecuencia: PayrollFrequency,
+   *   retencionPorBoleta: number,
+   *   totalRetenciones: number,
+   *   primerDescuento: Object,
+   *   deducciones: PayrollDeduction[]
+   * }}
+   */
+  static generatePayrollSchedule(loan, frequency = 'QUINCENAL', disbursementDate = new Date()) {
+    const firstDeduction = this.calculateFirstDeductionInfo(disbursementDate, frequency);
+    const deducciones = [];
+    let correlativo = 1;
+
+    if (frequency === 'QUINCENAL') {
+      // 50% en la 1ª quincena y 50% en la 2ª quincena
+      let currentDate = new Date(firstDeduction.fechaDate.getTime());
+      let esPrimeraQuincena = (firstDeduction.quincenaSubtipo === 1);
+
+      loan.cronograma.forEach((cuotaMensual) => {
+        // Fraccionar cuota mensual en 2 partes exactas sin perder centavos
+        const mitad1 = FinancialMath.round(cuotaMensual.cuotaTotal / 2);
+        const mitad2 = FinancialMath.round(cuotaMensual.cuotaTotal - mitad1);
+
+        // Subcuota A
+        const labelA = `${esPrimeraQuincena ? '1ª' : '2ª'} Quincena ${this.MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        deducciones.push({
+          id: correlativo++,
+          numeroCuotaMensual: cuotaMensual.numeroCuota,
+          subperiodo: '1/2',
+          periodoPlanilla: labelA,
+          fechaPagoNomina: this.formatDate(currentDate),
+          fraccionCuota: 0.50,
+          montoRetencion: mitad1,
+          saldoCreditoRemanente: FinancialMath.round(cuotaMensual.saldoInicial - (cuotaMensual.amortizacionCapital / 2))
+        });
+
+        // Avanzar al siguiente periodo quincenal
+        if (esPrimeraQuincena) {
+          // De 1ª quincena (15) pasa a fin de mes del mismo mes
+          const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), lastDay);
+          esPrimeraQuincena = false;
+        } else {
+          // De 2ª quincena (fin de mes) pasa a día 15 del mes siguiente
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15);
+          esPrimeraQuincena = true;
+        }
+
+        // Subcuota B
+        const labelB = `${esPrimeraQuincena ? '1ª' : '2ª'} Quincena ${this.MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        deducciones.push({
+          id: correlativo++,
+          numeroCuotaMensual: cuotaMensual.numeroCuota,
+          subperiodo: '2/2',
+          periodoPlanilla: labelB,
+          fechaPagoNomina: this.formatDate(currentDate),
+          fraccionCuota: 0.50,
+          montoRetencion: mitad2,
+          saldoCreditoRemanente: cuotaMensual.saldoFinal
+        });
+
+        // Avanzar para la siguiente cuota mensual
+        if (esPrimeraQuincena) {
+          const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), lastDay);
+          esPrimeraQuincena = false;
+        } else {
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15);
+          esPrimeraQuincena = true;
+        }
+      });
+
+    } else if (frequency === 'SEMANAL') {
+      // 25% por semana (4 semanas por cuota mensual)
+      let currentDate = new Date(firstDeduction.fechaDate.getTime());
+
+      loan.cronograma.forEach((cuotaMensual) => {
+        const parteBase = FinancialMath.round(cuotaMensual.cuotaTotal / 4);
+
+        for (let w = 1; w <= 4; w++) {
+          const monto = (w === 4)
+            ? FinancialMath.round(cuotaMensual.cuotaTotal - (3 * parteBase))
+            : parteBase;
+
+          const weekOfMonth = Math.ceil(currentDate.getDate() / 7);
+          const label = `Semana ${weekOfMonth} - ${this.MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+          deducciones.push({
+            id: correlativo++,
+            numeroCuotaMensual: cuotaMensual.numeroCuota,
+            subperiodo: `${w}/4`,
+            periodoPlanilla: label,
+            fechaPagoNomina: this.formatDate(currentDate),
+            fraccionCuota: 0.25,
+            montoRetencion: monto,
+            saldoCreditoRemanente: (w === 4) ? cuotaMensual.saldoFinal : FinancialMath.round(cuotaMensual.saldoInicial - (cuotaMensual.amortizacionCapital * (w / 4)))
+          });
+
+          // Sumar 7 días
+          currentDate = new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        }
+      });
+
+    } else {
+      // MENSUAL: 100% de la cuota en el pago de fin de mes
+      let currentDate = new Date(firstDeduction.fechaDate.getTime());
+
+      loan.cronograma.forEach((cuotaMensual) => {
+        const label = `Fin de Mes ${this.MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        deducciones.push({
+          id: correlativo++,
+          numeroCuotaMensual: cuotaMensual.numeroCuota,
+          subperiodo: '1/1',
+          periodoPlanilla: label,
+          fechaPagoNomina: this.formatDate(currentDate),
+          fraccionCuota: 1.00,
+          montoRetencion: cuotaMensual.cuotaTotal,
+          saldoCreditoRemanente: cuotaMensual.saldoFinal
+        });
+
+        // Mes siguiente fin de mes
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+      });
+    }
+
+    const divisor = (frequency === 'QUINCENAL') ? 2 : (frequency === 'SEMANAL' ? 4 : 1);
+    const retencionPorBoleta = FinancialMath.round(loan.cuotaMensualFija / divisor);
+
+    return {
+      frecuencia: frequency,
+      retencionPorBoleta,
+      totalRetenciones: deducciones.length,
+      primerDescuento: firstDeduction,
+      deducciones
+    };
+  }
+}
+
+/**
  * Motor de Adelanto de Sueldo (Earned Wage Access - EWA)
  * Diseñado para empresas peruanas bajo esquemas de deducción en planilla de nómina.
  */
@@ -499,8 +771,9 @@ class EWAEngine {
 if (typeof window !== 'undefined') {
   window.FinancialMath = FinancialMath;
   window.LoanEngine = LoanEngine;
+  window.PayrollEngine = PayrollEngine;
   window.EWAEngine = EWAEngine;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { FinancialMath, LoanEngine, EWAEngine };
+  module.exports = { FinancialMath, LoanEngine, PayrollEngine, EWAEngine };
 }

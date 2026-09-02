@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     originalLoan: null,
     isPrepaymentActive: false,
     selectedModality: 'REDUCIR_PLAZO',
+    activeScheduleView: 'PAYROLL',
+    currentPayrollResult: null,
     ewaRequest: {
       salarioNetoMensual: 3000,
       diasTrabajados: 15,
@@ -40,7 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const rangeTerm = document.getElementById('rangeTerm');
   const loanTEAInput = document.getElementById('loanTEA');
   const dueDaySelect = document.getElementById('dueDay');
+  const payrollFrequencySelect = document.getElementById('payrollFrequency');
+  const lblFrequencySub = document.getElementById('lblFrequencySub');
+  const disbursementDateInput = document.getElementById('disbursementDate');
   const btnRecalculateLoan = document.getElementById('btnRecalculateLoan');
+
+  // Primer Descuento Card
+  const lblPrimerDescuentoPeriodo = document.getElementById('lblPrimerDescuentoPeriodo');
+  const lblPrimerDescuentoFecha = document.getElementById('lblPrimerDescuentoFecha');
+  const lblPrimerDescuentoCorte = document.getElementById('lblPrimerDescuentoCorte');
 
   // Préstamos Displays
   const txtAmountDisplay = document.getElementById('txtAmountDisplay');
@@ -50,13 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // KPI Préstamo
   const kpiCuotaFija = document.getElementById('kpiCuotaFija');
+  const kpiRetencionBoleta = document.getElementById('kpiRetencionBoleta');
+  const kpiLabelRetencion = document.getElementById('kpiLabelRetencion');
+  const kpiSubtextRetencion = document.getElementById('kpiSubtextRetencion');
   const kpiInteresTotal = document.getElementById('kpiInteresTotal');
   const kpiRatioInteres = document.getElementById('kpiRatioInteres');
   const kpiCostoTotal = document.getElementById('kpiCostoTotal');
   const kpiTEM = document.getElementById('kpiTEM');
   const badgeScheduleStatus = document.getElementById('badgeScheduleStatus');
 
-  // Tabla
+  // Subtabs de Cronogramas
+  const btnViewPayrollSchedule = document.getElementById('btnViewPayrollSchedule');
+  const btnViewMonthlySchedule = document.getElementById('btnViewMonthlySchedule');
+  const payrollTableWrapper = document.getElementById('payrollTableWrapper');
+  const monthlyTableWrapper = document.getElementById('monthlyTableWrapper');
+  const payrollScheduleTableBody = document.getElementById('payrollScheduleTableBody');
   const scheduleTableBody = document.getElementById('scheduleTableBody');
 
   // Prepago SBS
@@ -163,16 +181,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // MÓDULO PRÉSTAMOS PERSONALES (SISTEMA FRANCÉS SBS)
   // =========================================================================
   function getLoanInputs() {
+    // Inicializar fecha de desembolso a hoy si no está fijada
+    if (!disbursementDateInput.value) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      disbursementDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    const parts = disbursementDateInput.value.split('-');
+    const disbDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+
     return {
       principal: parseFloat(loanAmountInput.value) || 10000,
       term: parseInt(loanTermInput.value, 10) || 12,
       tea: (parseFloat(loanTEAInput.value) || 25) / 100,
-      dueDay: parseInt(dueDaySelect.value, 10) || 30
+      dueDay: parseInt(dueDaySelect.value, 10) || 30,
+      frequency: payrollFrequencySelect.value || 'QUINCENAL',
+      disbursementDate: disbDate
     };
   }
 
   function calculateAndRenderLoan() {
-    const { principal, term, tea, dueDay } = getLoanInputs();
+    const { principal, term, tea, dueDay, frequency, disbursementDate } = getLoanInputs();
 
     // Actualizar badges e indicadores visuales de tasa
     const tem = FinancialMath.teaToTem(tea);
@@ -183,15 +215,40 @@ document.addEventListener('DOMContentLoaded', () => {
     txtTermDisplay.textContent = `${term} meses`;
     txtTeaDisplay.textContent = `${(tea * 100).toFixed(2)}%`;
 
-    // Generar cronograma
-    const loan = LoanEngine.generateSchedule(principal, tea, term, dueDay);
+    // Generar cronograma bancario mensual (Sistema Francés SBS)
+    const loan = LoanEngine.generateSchedule(principal, tea, term, dueDay, disbursementDate);
     state.currentLoan = loan;
     state.originalLoan = loan;
     state.currentSchedule = loan.cronograma;
     state.isPrepaymentActive = false;
 
-    // Actualizar KPIs
+    // Generar desglose de retenciones por boleta de nómina
+    const payrollResult = PayrollEngine.generatePayrollSchedule(loan, frequency, disbursementDate);
+    state.currentPayrollResult = payrollResult;
+
+    // Actualizar tarjeta interactiva del primer descuento
+    lblPrimerDescuentoPeriodo.textContent = payrollResult.primerDescuento.periodo;
+    lblPrimerDescuentoFecha.textContent = payrollResult.primerDescuento.fechaPago;
+    lblPrimerDescuentoCorte.textContent = payrollResult.primerDescuento.corteExplicacion;
+
+    // Actualizar KPIs de cuota y retención por boleta
     kpiCuotaFija.textContent = FinancialMath.formatCurrency(loan.cuotaMensualFija);
+    kpiRetencionBoleta.textContent = FinancialMath.formatCurrency(payrollResult.retencionPorBoleta);
+
+    if (frequency === 'QUINCENAL') {
+      kpiLabelRetencion.textContent = 'Descuento Quincenal';
+      kpiSubtextRetencion.textContent = '50% por cada quincena';
+      lblFrequencySub.textContent = 'Quincenal (50/50)';
+    } else if (frequency === 'SEMANAL') {
+      kpiLabelRetencion.textContent = 'Descuento Semanal';
+      kpiSubtextRetencion.textContent = '25% por cada semana';
+      lblFrequencySub.textContent = 'Semanal (25% x 4)';
+    } else {
+      kpiLabelRetencion.textContent = 'Descuento Mensual';
+      kpiSubtextRetencion.textContent = '100% en fin de mes';
+      lblFrequencySub.textContent = 'Mensual (100%)';
+    }
+
     kpiInteresTotal.textContent = FinancialMath.formatCurrency(loan.interesTotal);
     const ratioInteres = ((loan.interesTotal / loan.montoCapital) * 100).toFixed(1);
     kpiRatioInteres.textContent = `${ratioInteres}% del capital`;
@@ -201,8 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     badgeScheduleStatus.style.display = 'none';
     comparisonBanner.style.display = 'none';
 
-    // Renderizar tabla y selector de prepago
+    // Renderizar ambas tablas y selector de prepago
     renderScheduleTable(loan.cronograma);
+    renderPayrollScheduleTable(payrollResult.deducciones);
     populatePrepaymentInstallmentSelect(loan.cronograma);
   }
 
@@ -232,6 +290,43 @@ document.addEventListener('DOMContentLoaded', () => {
       scheduleTableBody.appendChild(tr);
     });
   }
+
+  function renderPayrollScheduleTable(deducciones) {
+    payrollScheduleTableBody.innerHTML = '';
+
+    deducciones.forEach(d => {
+      const tr = document.createElement('tr');
+      const freqClass = (state.currentPayrollResult?.frecuencia || 'QUINCENAL').toLowerCase();
+      tr.innerHTML = `
+        <td><strong>#${d.id}</strong></td>
+        <td>Cuota #${d.numeroCuotaMensual} <span class="badge-subperiod">${d.subperiodo}</span></td>
+        <td><strong>${d.periodoPlanilla}</strong></td>
+        <td>${d.fechaPagoNomina}</td>
+        <td><span class="badge-frequency-chip ${freqClass}">${(d.fraccionCuota * 100).toFixed(0)}%</span></td>
+        <td style="color: #34d399; font-weight: 700;">${FinancialMath.formatCurrency(d.montoRetencion)}</td>
+        <td style="font-weight: 600;">${FinancialMath.formatCurrency(d.saldoCreditoRemanente)}</td>
+      `;
+      payrollScheduleTableBody.appendChild(tr);
+    });
+  }
+
+  function switchScheduleView(view) {
+    state.activeScheduleView = view;
+    if (view === 'PAYROLL') {
+      btnViewPayrollSchedule.classList.add('active');
+      btnViewMonthlySchedule.classList.remove('active');
+      payrollTableWrapper.style.display = 'block';
+      monthlyTableWrapper.style.display = 'none';
+    } else {
+      btnViewMonthlySchedule.classList.add('active');
+      btnViewPayrollSchedule.classList.remove('active');
+      payrollTableWrapper.style.display = 'none';
+      monthlyTableWrapper.style.display = 'block';
+    }
+  }
+
+  btnViewPayrollSchedule.addEventListener('click', () => switchScheduleView('PAYROLL'));
+  btnViewMonthlySchedule.addEventListener('click', () => switchScheduleView('MONTHLY'));
 
   function populatePrepaymentInstallmentSelect(schedule) {
     prepayInstallmentSelect.innerHTML = '';
@@ -311,9 +406,21 @@ document.addEventListener('DOMContentLoaded', () => {
       state.isPrepaymentActive = true;
       state.currentSchedule = prepayResult.nuevoCronograma;
 
-      // Reflejar en la tabla
+      // Reflejar en la tabla mensual
       renderScheduleTable(prepayResult.nuevoCronograma);
       badgeScheduleStatus.style.display = 'inline-flex';
+
+      // Sincronizar también la tabla de retenciones por nómina
+      const { frequency, disbursementDate } = getLoanInputs();
+      const updatedLoan = {
+        ...state.originalLoan,
+        cuotaMensualFija: prepayResult.nuevaCuotaMensual,
+        cronograma: prepayResult.nuevoCronograma
+      };
+      const prepayPayroll = PayrollEngine.generatePayrollSchedule(updatedLoan, frequency, disbursementDate);
+      state.currentPayrollResult = prepayPayroll;
+      renderPayrollScheduleTable(prepayPayroll.deducciones);
+      kpiRetencionBoleta.textContent = FinancialMath.formatCurrency(prepayPayroll.retencionPorBoleta);
 
       // Mostrar métricas comparativas
       comparisonBanner.style.display = 'grid';
@@ -336,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Scroll suave a la tabla
-      document.getElementById('scheduleTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('payrollTableWrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       showToast(`¡Prepago aplicado con éxito! Ahorro de intereses: ${FinancialMath.formatCurrency(prepayResult.ahorroInteresTotal)}`, 'success');
 
@@ -350,6 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
     state.isPrepaymentActive = false;
     state.currentSchedule = state.originalLoan.cronograma;
     renderScheduleTable(state.originalLoan.cronograma);
+
+    // Restablecer desglose de nómina original
+    const { frequency, disbursementDate } = getLoanInputs();
+    const origPayroll = PayrollEngine.generatePayrollSchedule(state.originalLoan, frequency, disbursementDate);
+    state.currentPayrollResult = origPayroll;
+    renderPayrollScheduleTable(origPayroll.deducciones);
+    kpiRetencionBoleta.textContent = FinancialMath.formatCurrency(origPayroll.retencionPorBoleta);
+
     badgeScheduleStatus.style.display = 'none';
     comparisonBanner.style.display = 'none';
     showToast('Cronograma restablecido a condiciones originales.', 'info');
@@ -376,9 +491,12 @@ document.addEventListener('DOMContentLoaded', () => {
   loanAmountInput.addEventListener('input', calculateAndRenderLoan);
   loanTEAInput.addEventListener('input', calculateAndRenderLoan);
   dueDaySelect.addEventListener('change', calculateAndRenderLoan);
+  payrollFrequencySelect.addEventListener('change', calculateAndRenderLoan);
+  disbursementDateInput.addEventListener('change', calculateAndRenderLoan);
+
   btnRecalculateLoan.addEventListener('click', () => {
     calculateAndRenderLoan();
-    showToast('Cronograma oficial recalculado con éxito.', 'success');
+    showToast('Cronograma oficial y retenciones recalculadas con éxito.', 'success');
   });
 
   // Chip Presets de Préstamo
@@ -409,6 +527,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // EXPORTACIÓN A CSV Y PDF
   // =========================================================================
   btnExportCSV.addEventListener('click', () => {
+    if (state.activeScheduleView === 'PAYROLL' && state.currentPayrollResult) {
+      let csvContent = '\uFEFF';
+      csvContent += 'Nro Retencion,Cuota Mensual,Subperiodo,Periodo Planilla,Fecha Boleta,Fraccion,Monto a Descontar (PEN),Saldo Remanente (PEN)\n';
+      state.currentPayrollResult.deducciones.forEach(d => {
+        csvContent += `${d.id},${d.numeroCuotaMensual},"${d.subperiodo}","${d.periodoPlanilla}","${d.fechaPagoNomina}","${(d.fraccionCuota * 100).toFixed(0)}%",${d.montoRetencion.toFixed(2)},${d.saldoCreditoRemanente.toFixed(2)}\n`;
+      });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plan_retencion_boletas_${state.currentPayrollResult.frecuencia.toLowerCase()}_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Plan de retenciones por boleta exportado a CSV.', 'success');
+      return;
+    }
+
     if (!state.currentSchedule || state.currentSchedule.length === 0) return;
 
     let csvContent = '\uFEFF'; // BOM para compatibilidad con Microsoft Excel en español

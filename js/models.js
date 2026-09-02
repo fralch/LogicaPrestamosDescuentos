@@ -85,6 +85,21 @@
  * @property {number} nuevoCostoTotal - Nuevo costo total del crédito
  */
 
+/**
+ * @typedef {'MENSUAL' | 'QUINCENAL' | 'SEMANAL'} PayrollFrequency
+ */
+
+/**
+ * @typedef {Object} PayrollDeduction
+ * @property {number} id - Identificador correlativo del descuento
+ * @property {number} numeroCuotaMensual - Cuota del crédito a la que pertenece
+ * @property {string} periodoPlanilla - Nombre legible del periodo (ej. "1ª Quincena Mayo 2026")
+ * @property {string} fechaPagoNomina - Fecha programada de la boleta de pago (DD/MM/YYYY)
+ * @property {number} fraccionCuota - Porcentaje de la cuota mensual retenido (ej. 0.50 para 50%)
+ * @property {number} montoRetencion - Importe exacto en Soles a descontar en esa boleta
+ * @property {number} saldoCreditoRemanente - Saldo vivo del crédito tras este periodo
+ */
+
 // Exportación universal para navegador o Node
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {};
