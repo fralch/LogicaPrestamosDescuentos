@@ -1,6 +1,6 @@
 /**
  * @file app.js
- * @description Controlador de interfaz de usuario y eventos para CrediNova Perú.
+ * @description Controlador de interfaz de usuario y eventos para Overcash.
  * Conecta el Motor Financiero SBS con la vista interactiva, gestiona estados,
  * simulación de amortización anticipada (prepago), EWA y exportación a CSV/PDF.
  */
