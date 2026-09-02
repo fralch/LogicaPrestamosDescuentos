@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrediNova Perú | Plataforma Fintech de Crédito & EWA (SBS Compliant)</title>
+  <meta name="description" content="Sistema integral fintech de préstamos bajo sistema francés, simulador oficial de prepago según SBS y adelanto de salario devengado (EWA).">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- Printable Header for Official PDF/Exports -->
+    <div class="print-header" id="printHeader">
+      <h2>CREDI-NOVA PERÚ FINTECH S.A.C. - RUC 20608945123</h2>
+      <p>Reporte Oficial Financiero & Cronograma de Amortización bajo Normativa SBS Res. N° 3274-2017</p>
+      <p id="printDate"></p>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-text">
+          <h1>CrediNova Perú</h1>
+          <p>Ecosistema Fintech de Crédito & Earned Wage Access (EWA - Adelanto de Salario Devengado)</p>
+        </div>
+      </div>
+      <div class="badge-sbs">
+        <span class="pulse-dot"></span>
+        <span>Normativa SBS Res. N° 3274-2017</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs-container">
+      <button class="nav-tab-btn active" id="tabBtnLoans" data-tab="loansPanel">
+        <span>Préstamos Personales & Cronograma Francés (TEA / TEM)</span>
+      </button>
+      <button class="nav-tab-btn" id="tabBtnEWA" data-tab="ewaPanel">
+        <span>Adelanto de Salario (EWA - Earned Wage Access)</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         TAB 1: PRÉSTAMOS PERSONALES (SISTEMA FRANCÉS + PREPAGO SBS)
+         ==================================================================== -->
+    <section class="tab-content-panel active" id="loansPanel">
+      <div class="grid-dashboard">
+        
+        <!-- Sidebar: Parámetros del Préstamo -->
+        <aside class="card-panel">
+          <div class="card-title">
+            <span>Parámetros del Crédito</span>
+            <span class="label-sub" id="temBadge">TEM: 0.0000%</span>
+          </div>
+
+          <!-- Monto de Capital -->
+          <div class="form-group">
+            <label class="form-label" for="loanAmount">
+              <span>Monto Solicitado (Capital P)</span>
+              <span class="label-sub" id="txtAmountDisplay">S/. 10,000.00</span>
+            </label>
+            <div class="input-container">
+              <span class="input-prefix">S/.</span>
+              <input type="number" id="loanAmount" class="form-input" value="10000" min="500" max="200000" step="100">
+            </div>
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" data-set-amount="3000">S/. 3,000</button>
+              <button type="button" class="chip-btn" data-set-amount="5000">S/. 5,000</button>
+              <button type="button" class="chip-btn" data-set-amount="10000">S/. 10,000</button>
+              <button type="button" class="chip-btn" data-set-amount="25000">S/. 25,000</button>
+            </div>
+            <span class="field-helper-text">P (Capital o Principal): Monto neto financiado que recibe el cliente.</span>
+          </div>
+
+          <!-- Plazo en Meses -->
+          <div class="form-group">
+            <label class="form-label" for="loanTerm">
+              <span>Plazo en Meses (n)</span>
+              <span class="label-sub" id="txtTermDisplay">12 meses</span>
+            </label>
+            <div class="input-container">
+              <input type="number" id="loanTerm" class="form-input no-prefix" value="12" min="1" max="72" step="1">
+            </div>
+            <input type="range" id="rangeTerm" class="form-range" min="1" max="48" value="12">
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" data-set-term="6">6m</button>
+              <button type="button" class="chip-btn" data-set-term="12">12m</button>
+              <button type="button" class="chip-btn" data-set-term="24">24m</button>
+              <button type="button" class="chip-btn" data-set-term="36">36m</button>
+            </div>
+            <span class="field-helper-text">n (Plazo): Cantidad total de periodos o cuotas mensuales uniformes pactadas.</span>
+          </div>
+
+          <!-- Tasa Efectiva Anual (TEA) -->
+          <div class="form-group">
+            <label class="form-label" for="loanTEA">
+              <span>Tasa Efectiva Anual (TEA %)</span>
+              <span class="label-sub" id="txtTeaDisplay">25.00%</span>
+            </label>
+            <div class="input-container">
+              <span class="input-prefix">%</span>
+              <input type="number" id="loanTEA" class="form-input" value="25.00" min="5" max="150" step="0.5">
+            </div>
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" data-set-tea="18.00">18% TEA</button>
+              <button type="button" class="chip-btn" data-set-tea="25.00">25% TEA</button>
+              <button type="button" class="chip-btn" data-set-tea="35.00">35% TEA</button>
+              <button type="button" class="chip-btn" data-set-tea="49.00">49% TEA</button>
+            </div>
+            <span class="field-helper-text">TEA (Tasa Efectiva Anual): Tasa de costo financiero anualizado sobre base oficial SBS de 360 días.</span>
+          </div>
+
+          <!-- Día de Vencimiento -->
+          <div class="form-group">
+            <label class="form-label" for="dueDay">
+              <span>Día de Pago del Mes</span>
+              <span class="label-sub">Cada fin de mes</span>
+            </label>
+            <select id="dueDay" class="form-input no-prefix" style="cursor:pointer;">
+              <option value="5">Día 05 de cada mes</option>
+              <option value="15">Día 15 de cada mes</option>
+              <option value="25">Día 25 de cada mes</option>
+              <option value="30" selected>Día 30 / Fin de mes</option>
+            </select>
+          </div>
+
+          <button id="btnRecalculateLoan" class="btn-primary" style="width: 100%;">
+            <span>Recalcular Cronograma</span>
+          </button>
+        </aside>
+
+        <!-- Main Panel: Resumen Financiero + Cronograma + Prepago -->
+        <main>
+          
+          <!-- KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card emerald">
+              <div class="kpi-header">
+                <span>Cuota Mensual Fija</span>
+              </div>
+              <div class="kpi-value" id="kpiCuotaFija">S/. 0.00</div>
+              <div class="kpi-subtext">Sistema Francés constante</div>
+            </div>
+
+            <div class="kpi-card cyan">
+              <div class="kpi-header">
+                <span>Total Intereses</span>
+              </div>
+              <div class="kpi-value" id="kpiInteresTotal">S/. 0.00</div>
+              <div class="kpi-subtext" id="kpiRatioInteres">0.0% del capital</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span>Costo Total del Crédito</span>
+              </div>
+              <div class="kpi-value" id="kpiCostoTotal">S/. 0.00</div>
+              <div class="kpi-subtext">Capital + Intereses totales</div>
+            </div>
+
+            <div class="kpi-card amber">
+              <div class="kpi-header">
+                <span>Tasa Mensual (TEM)</span>
+              </div>
+              <div class="kpi-value" id="kpiTEM">0.0000%</div>
+              <div class="kpi-subtext">TEM (Tasa Efectiva Mensual) Base 30/360 SBS</div>
+            </div>
+          </div>
+
+          <!-- Acciones y Exportaciones -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+              <span>Cronograma de Pagos Oficial</span>
+              <span id="badgeScheduleStatus" class="tag-prepago" style="display:none;">PREPAGO ACTIVO</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button id="btnOpenPrepayModal" class="btn-primary btn-emerald">
+                <span>Simular Pago Anticipado (SBS)</span>
+              </button>
+              <button id="btnExportCSV" class="btn-secondary">
+                <span>Descargar CSV</span>
+              </button>
+              <button id="btnPrintPDF" class="btn-secondary">
+                <span>Imprimir / PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabla de Cronograma Oficial -->
+          <div class="table-wrapper">
+            <table class="fin-table" id="scheduleTable">
+              <thead>
+                <tr>
+                  <th>N° Cuota</th>
+                  <th>Vencimiento</th>
+                  <th>Saldo Inicial</th>
+                  <th>Cuota Total</th>
+                  <th>Interés</th>
+                  <th>Amortización</th>
+                  <th>Saldo Final</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleTableBody">
+                <!-- Inyectado dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ================================================================
+               MOTOR DE AMORTIZACIÓN ANTICIPADA / PREPAGO (SBS RES. 3274-2017)
+               ================================================================ -->
+          <div class="prepayment-box" id="prepaymentSection">
+            <div class="prepayment-header">
+              <div class="prepayment-title">
+                <span>Simulador de Amortización Anticipada (Prepago)</span>
+                <span class="sbs-rule-badge">Conforme a Circular SBS B-2218</span>
+              </div>
+              <button id="btnResetPrepayment" class="btn-secondary" style="font-size: 0.78rem; padding: 6px 12px;">
+                <span>Restablecer a Original</span>
+              </button>
+            </div>
+
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
+              En el sistema financiero peruano, los usuarios tienen derecho irrestricto a amortizar capital extraordinario sin penalidades ni comisiones. El monto extra se imputa íntegramente a reducir el saldo deudor de capital.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <!-- Selección de Cuota de Pago -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="prepayInstallmentSelect">
+                  <span>En qué cuota abonarás el prepago (k):</span>
+                  <span class="label-sub" id="lblPrepaySaldoRef">Saldo disponible: S/. 0.00</span>
+                </label>
+                <select id="prepayInstallmentSelect" class="form-input no-prefix" style="cursor:pointer;">
+                  <!-- Rellenado dinámicamente -->
+                </select>
+                <span class="field-helper-text">k: Número de cuota ordinaria en la cual se imputará la amortización extraordinaria directo a capital.</span>
+              </div>
+
+              <!-- Monto Extraordinario -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="prepayAmountInput">
+                  <span>Monto Extraordinario a Amortizar (S/.):</span>
+                  <span class="label-sub" id="lblPrepayMaxLimit">Máx: S/. 0.00</span>
+                </label>
+                <div class="input-container">
+                  <span class="input-prefix">S/.</span>
+                  <input type="number" id="prepayAmountInput" class="form-input" value="3000" min="50" step="50">
+                </div>
+              </div>
+            </div>
+
+            <!-- Selector de Modalidad SBS -->
+            <div style="margin-top: 18px;">
+              <div class="form-label">
+                <span>Selecciona la modalidad legal requerida (SBS Res. 3274-2017):</span>
+              </div>
+              <div class="modalities-grid">
+                <!-- Opción A -->
+                <div class="modality-card active" id="modalityPlazo" data-mode="REDUCIR_PLAZO">
+                  <div class="radio-indicator"></div>
+                  <div class="modality-title">
+                    <span>Opción A: Reducción de Plazo</span>
+                  </div>
+                  <div class="modality-desc">
+                    Se <strong>mantiene el valor de la cuota mensual original</strong> y se acorta el número de meses restantes para cancelar la deuda antes. Maximiza el ahorro de intereses.
+                  </div>
+                </div>
+
+                <!-- Opción B -->
+                <div class="modality-card" id="modalityCuota" data-mode="REDUCIR_CUOTA">
+                  <div class="radio-indicator"></div>
+                  <div class="modality-title">
+                    <span>Opción B: Reducción de Cuota</span>
+                  </div>
+                  <div class="modality-desc">
+                    Se <strong>mantiene el plazo restante original</strong> y se recalcula una cuota fija menor. Alivia el flujo de caja mensual del titular de inmediato.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 14px;">
+              <button id="btnApplyPrepayment" class="btn-primary btn-emerald" style="flex: 1;">
+                <span>Calcular y Aplicar Prepago</span>
+              </button>
+            </div>
+
+            <!-- Banner Comparativo de Impacto Financiero -->
+            <div class="comparison-banner" id="comparisonBanner" style="display:none;">
+              <div class="comparison-item">
+                <div class="comparison-label">Ahorro Neto en Intereses</div>
+                <div class="comparison-value" id="cmpAhorroInteres">S/. 0.00</div>
+                <div class="comparison-sub" id="cmpAhorroPct">0.0% de ahorro</div>
+              </div>
+              <div class="comparison-item">
+                <div class="comparison-label">Nuevo Interés Total</div>
+                <div class="comparison-value" id="cmpNuevoInteres" style="color: #60a5fa;">S/. 0.00</div>
+                <div class="comparison-sub" id="cmpInteresOriginalRef">Antes: S/. 0.00</div>
+              </div>
+              <div class="comparison-item">
+                <div class="comparison-label" id="cmpImpactoLabel">Impacto en Cronograma</div>
+                <div class="comparison-value" id="cmpImpactoValor" style="color: #fbbf24;">0 meses menos</div>
+                <div class="comparison-sub" id="cmpImpactoSub">Plazo reducido</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Nota Regulatoria SBS -->
+          <div class="sbs-legal-note">
+            <div>
+              <strong>Base Normativa SBS Perú:</strong> El cálculo de la TEM utiliza la convención bancaria de días 30/360 días ($TEM = (1 + TEA)^{30/360} - 1$) y redondeo contable bancario. Los pagos anticipados reducen directamente el saldo de capital y están protegidos por el Código de Protección al Consumidor (Ley 29571) y el Reglamento de Conducta de Mercado de la SBS.
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         TAB 2: ADELANTO DE SALARIO (EARNED WAGE ACCESS - EWA)
+         ==================================================================== -->
+    <section class="tab-content-panel" id="ewaPanel">
+      <div class="grid-dashboard">
+        
+        <!-- Sidebar: Inputs del Empleado -->
+        <aside class="card-panel">
+          <div class="card-title">
+            <span>Datos Laborales del Colaborador</span>
+          </div>
+
+          <!-- Salario Neto Mensual -->
+          <div class="form-group">
+            <label class="form-label" for="ewaSalary">
+              <span>Salario Neto Mensual</span>
+              <span class="label-sub" id="txtEwaSalaryDisplay">S/. 3,000.00</span>
+            </label>
+            <div class="input-container">
+              <span class="input-prefix">S/.</span>
+              <input type="number" id="ewaSalary" class="form-input" value="3000" min="1025" max="30000" step="100">
+            </div>
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" data-set-salary="1025" title="RMV: Remuneración Mínima Vital fijada por el Estado Peruano (S/. 1,025.00)">S/. 1,025 (RMV)</button>
+              <button type="button" class="chip-btn" data-set-salary="2500">S/. 2,500</button>
+              <button type="button" class="chip-btn" data-set-salary="4000">S/. 4,000</button>
+              <button type="button" class="chip-btn" data-set-salary="6500">S/. 6,500</button>
+            </div>
+            <span class="field-helper-text">Salario regular mensual percibido en cuenta sueldo luego de deducciones legales (AFP/ONP, 5ta categoría).</span>
+          </div>
+
+          <!-- Días Laborados en el mes -->
+          <div class="form-group">
+            <label class="form-label" for="ewaDaysWorked">
+              <span>Días Laborados Devengados (1 a 30)</span>
+              <span class="label-sub" id="txtEwaDaysDisplay">15 días</span>
+            </label>
+            <div class="input-container">
+              <input type="number" id="ewaDaysWorked" class="form-input no-prefix" value="15" min="1" max="30" step="1">
+            </div>
+            <input type="range" id="rangeEwaDays" class="form-range" min="1" max="30" value="15">
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" data-set-days="7">Día 7</button>
+              <button type="button" class="chip-btn" data-set-days="15">Día 15 (Quincena)</button>
+              <button type="button" class="chip-btn" data-set-days="20">Día 20</button>
+              <button type="button" class="chip-btn" data-set-days="25">Día 25</button>
+            </div>
+            <span class="field-helper-text">Días ya trabajados en el mes para calcular el sueldo devengado (base laboral 30 días).</span>
+          </div>
+
+          <!-- Porcentaje Máximo Retirable -->
+          <div class="form-group">
+            <label class="form-label" for="ewaMaxPercent">
+              <span>Porcentaje Máximo Retirable</span>
+              <span class="label-sub" id="txtEwaPercentDisplay">50% de devengado</span>
+            </label>
+            <select id="ewaMaxPercent" class="form-input no-prefix" style="cursor:pointer;">
+              <option value="0.30">30% del devengado</option>
+              <option value="0.40">40% del devengado</option>
+              <option value="0.50" selected>50% del devengado (Estándar RRHH)</option>
+              <option value="0.60">60% del devengado</option>
+            </select>
+            <span class="field-helper-text">Tope de política de RRHH (30% a 60%) para preservar la liquidez del colaborador al fin de mes.</span>
+          </div>
+
+          <!-- Tarifa Plana y Costos de Operación -->
+          <div class="form-group">
+            <label class="form-label" for="ewaFlatFee">
+              <span>Tarifa de Servicio Fija (Plana)</span>
+              <span class="label-sub">+ 18% IGV SUNAT</span>
+            </label>
+            <div class="input-container">
+              <span class="input-prefix">S/.</span>
+              <input type="number" id="ewaFlatFee" class="form-input" value="15.00" min="0" max="100" step="1">
+            </div>
+            <span class="field-helper-text">Tarifa fija por transacción tecnológica de liquidez + 18% IGV (Impuesto General a las Ventas de SUNAT).</span>
+          </div>
+
+          <!-- Monto que desea retirar -->
+          <div class="form-group">
+            <label class="form-label" for="ewaWithdrawAmount">
+              <span>Monto a Retirar</span>
+              <span class="label-sub" id="txtEwaWithdrawDisplay">S/. 500.00</span>
+            </label>
+            <div class="input-container">
+              <span class="input-prefix">S/.</span>
+              <input type="number" id="ewaWithdrawAmount" class="form-input" value="500" min="50" step="50">
+            </div>
+            <input type="range" id="rangeEwaWithdraw" class="form-range" min="50" max="750" value="500">
+          </div>
+
+          <button id="btnCalculateEWA" class="btn-primary btn-emerald" style="width: 100%;">
+            <span>Simular Desembolso EWA</span>
+          </button>
+        </aside>
+
+        <!-- Main Panel: Métricas EWA + Orden de Descuento en Planilla -->
+        <main>
+          
+          <!-- Gauge / Barra de Cupo Disponible -->
+          <div class="ewa-gauge-container">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+              Cupo de Adelanto Disponible a la Fecha
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 2.6rem; font-weight: 800; color: #34d399; margin: 8px 0;" id="ewaCupoValue">
+              S/. 750.00
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary);">
+              Devengado Acumulado a hoy (<span id="txtDevengadoRef">15 días</span>): <strong id="valDevengadoTotal" style="color:#fff;">S/. 1,500.00</strong>
+            </div>
+
+            <!-- Barra de Progreso de Cupo Utilizado -->
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="ewaProgressBar" style="width: 66.6%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); font-family: var(--font-mono);">
+              <span>S/. 0.00</span>
+              <span id="txtProgressPercent">66.6% del cupo solicitado</span>
+              <span id="txtMaxCupoLabel">S/. 750.00</span>
+            </div>
+          </div>
+
+          <!-- Tarjetas KPI EWA -->
+          <div class="kpi-grid">
+            <div class="kpi-card emerald">
+              <div class="kpi-header">
+                <span>Neto a Recibir</span>
+              </div>
+              <div class="kpi-value" id="kpiEwaNetoRecibir">S/. 500.00</div>
+              <div class="kpi-subtext">Transferencia inmediata a cuenta sueldo</div>
+            </div>
+
+            <div class="kpi-card cyan">
+              <div class="kpi-header">
+                <span>Tarifa Total de Servicio</span>
+              </div>
+              <div class="kpi-value" id="kpiEwaCostoServicio">S/. 17.70</div>
+              <div class="kpi-subtext">Tarifa S/. 15.00 + IGV S/. 2.70</div>
+            </div>
+
+            <div class="kpi-card amber">
+              <div class="kpi-header">
+                <span>Descuento en Nómina</span>
+              </div>
+              <div class="kpi-value" id="kpiEwaTotalDescuento">S/. 517.70</div>
+              <div class="kpi-subtext" id="kpiEwaCompromiso">% de retención en boleta</div>
+            </div>
+          </div>
+
+          <!-- Comprobante / Orden Oficial de Descuento para RRHH -->
+          <div class="ewa-voucher">
+            <div class="voucher-header">
+              <div>
+                <div class="voucher-title">ORDEN DE DESCUENTO EN PLANILLA - EWA</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Liquidación única para el corte de nómina inmediato</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="sbs-rule-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+                  AUTORIZADO POR TRABAJADOR
+                </div>
+              </div>
+            </div>
+
+            <div class="voucher-row">
+              <span>Colaborador / Titular:</span>
+              <span class="val">JUAN PÉREZ ROJAS (DNI 45892147)</span>
+            </div>
+            <div class="voucher-row">
+              <span>Empresa Empleadora:</span>
+              <span class="val">OPERACIONES PERÚ S.A.</span>
+            </div>
+            <div class="voucher-row">
+              <span>Fecha de Corte de Planilla:</span>
+              <span class="val" id="vchFechaCorte">30/09/2026</span>
+            </div>
+            <div class="voucher-row">
+              <span>Salario Neto Mensual:</span>
+              <span class="val" id="vchSalario">S/. 3,000.00</span>
+            </div>
+            <div class="voucher-row">
+              <span>Días Laborados Devengados:</span>
+              <span class="val" id="vchDias">15 días</span>
+            </div>
+            <div class="voucher-row">
+              <span>Monto de Adelanto Solicitado:</span>
+              <span class="val" id="vchAdelanto">S/. 500.00</span>
+            </div>
+            <div class="voucher-row">
+              <span>Tarifa Plana por Servicio EWA:</span>
+              <span class="val" id="vchTarifa">S/. 15.00</span>
+            </div>
+            <div class="voucher-row">
+              <span>Impuesto General a las Ventas (IGV 18%):</span>
+              <span class="val" id="vchIGV">S/. 2.70</span>
+            </div>
+            <div class="voucher-row total">
+              <span>TOTAL A RETENER EN BOLETA DE PAGO:</span>
+              <span class="val" id="vchTotalDescuento">S/. 517.70</span>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+              <button id="btnExportEWAPDF" class="btn-secondary">
+                <span>Imprimir Constancia</span>
+              </button>
+              <button id="btnApproveEWA" class="btn-primary btn-emerald">
+                <span>Confirmar y Generar Orden</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Nota Informativa EWA -->
+          <div class="sbs-legal-note">
+            <div>
+              <strong>Naturaleza Jurídica EWA en Perú:</strong> El adelanto de salario no constituye una operación de crédito ni préstamo convencional; representa el acceso anticipado a la remuneración legalmente devengada por días laborados. La tarifa fija corresponde a servicios tecnológicos de liquidez inmediata, exenta de intereses bancarios.
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECCIÓN: GLOSARIO Y LEYENDA DE ABREVIACIONES FINANCIERAS
+         ==================================================================== -->
+    <section class="glossary-section" id="glossarySection">
+      <div class="glossary-header">
+        <div>
+          <div class="glossary-title">Glosario y Leyenda de Abreviaciones Financieras</div>
+          <div class="glossary-subtitle">Guía oficial de términos, fórmulas y siglas utilizadas en el sistema conforme a la normativa de la SBS en el Perú.</div>
+        </div>
+        <span class="glossary-badge">Normativa SBS Perú</span>
+      </div>
+
+      <div class="glossary-grid">
+        <!-- TEM -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">TEM</span>
+            <span class="glossary-name">Tasa Efectiva Mensual</span>
+          </div>
+          <div class="glossary-desc">
+            Tasa de interés periódica que se aplica al saldo deudor de capital de cada periodo mensual. En el sistema financiero peruano se calcula bajo la convención oficial base 30/360 días a partir de la TEA.
+          </div>
+          <div class="glossary-formula">TEM = (1 + TEA)^(30 / 360) - 1</div>
+        </div>
+
+        <!-- TEA -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">TEA</span>
+            <span class="glossary-name">Tasa Efectiva Anual</span>
+          </div>
+          <div class="glossary-desc">
+            Tasa anual contractual pactada que mide el costo financiero efectivo del crédito considerando la capitalización de intereses en un año bancario (360 días). Es la tasa de referencia legal obligatoria exigida por la SBS.
+          </div>
+          <div class="glossary-formula">TEA = (1 + TEM)^12 - 1</div>
+        </div>
+
+        <!-- EWA -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">EWA</span>
+            <span class="glossary-name">Earned Wage Access (Adelanto de Salario)</span>
+          </div>
+          <div class="glossary-desc">
+            Modelo de liquidez salarial que otorga al trabajador acceso a su salario devengado (días ya laborados) antes de la fecha de cierre de planilla. No es un préstamo ni devenga intereses compensatorios; solo aplica una tarifa plana por uso de plataforma.
+          </div>
+          <div class="glossary-formula">Cupo = (Salario / 30) * Días * % Máximo</div>
+        </div>
+
+        <!-- SBS -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">SBS</span>
+            <span class="glossary-name">Superintendencia de Banca, Seguros y AFP</span>
+          </div>
+          <div class="glossary-desc">
+            Entidad constitucional autónoma de regulación y supervisión financiera en el Perú. Establece las directivas de transparencia, conducta de mercado y protección al usuario para créditos y cronogramas de pagos.
+          </div>
+          <div class="glossary-formula">Res. SBS N° 3274-2017 & Circular B-2218</div>
+        </div>
+
+        <!-- IGV -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">IGV</span>
+            <span class="glossary-name">Impuesto General a las Ventas (18%)</span>
+          </div>
+          <div class="glossary-desc">
+            Impuesto al valor agregado administrado por la SUNAT en el Perú. Aplica una tasa del 18% sobre la tarifa fija por el servicio tecnológico de adelanto de sueldo.
+          </div>
+          <div class="glossary-formula">IGV = Tarifa Fija * 0.18</div>
+        </div>
+
+        <!-- RMV -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">RMV</span>
+            <span class="glossary-name">Remuneración Mínima Vital</span>
+          </div>
+          <div class="glossary-desc">
+            Sueldo mínimo legal fijado por el Estado peruano para un trabajador formal de la actividad privada bajo jornada completa (fijada en S/. 1,025.00).
+          </div>
+          <div class="glossary-formula">Monto Legal Vigente: S/. 1,025.00</div>
+        </div>
+
+        <!-- P y n -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">P / n</span>
+            <span class="glossary-name">Capital (P) y Plazo en Meses (n)</span>
+          </div>
+          <div class="glossary-desc">
+            <strong>P (Principal):</strong> Monto inicial del préstamo desembolsado. <strong>n (Plazo):</strong> Número total de meses o cuotas periódicas uniformes para cancelar el crédito bajo Sistema Francés.
+          </div>
+          <div class="glossary-formula">Cuota = P * [TEM*(1+TEM)^n] / [(1+TEM)^n - 1]</div>
+        </div>
+
+        <!-- Prepago k -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">Prepago (k)</span>
+            <span class="glossary-name">Amortización Extraordinaria (Cuota k)</span>
+          </div>
+          <div class="glossary-desc">
+            Pago extraordinario abonado en la cuota <strong>k</strong> que se imputa 100% a reducir capital. Bajo norma SBS el usuario elige sin costo entre <strong>Reducción de Plazo</strong> (mantiene cuota, acorta tiempo) o <strong>Reducción de Cuota</strong> (mantiene plazo, baja cuota mensual).
+          </div>
+          <div class="glossary-formula">Nuevo Saldo = Saldo Ordinario - Prepago Extra</div>
+        </div>
+
+        <!-- Sistema Frances -->
+        <div class="glossary-card">
+          <div class="glossary-term">
+            <span class="glossary-code">Francés</span>
+            <span class="glossary-name">Sistema de Amortización Francés</span>
+          </div>
+          <div class="glossary-desc">
+            Método de cuotas mensuales constantes. En las primeras cuotas predomina el componente de interés; conforme disminuye el saldo adeudado, la proporción de amortización de capital aumenta progresivamente hasta liquidar la deuda en cero.
+          </div>
+          <div class="glossary-formula">Cuota = Interés(k) + Amortización(k)</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/financialEngine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
